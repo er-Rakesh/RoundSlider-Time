@@ -1,0 +1,42 @@
+  func setupAudioPlayer() {
+        // TODO: load the audio file asynchronously and observe player status
+        guard let audioFileURL = Bundle.main.url(forResource: "StrangeZero", withExtension: "mp3") else { return }
+        let asset = AVURLAsset(url: audioFileURL, options: nil)
+        let playerItem = AVPlayerItem(asset: asset)
+        audioPlayer.replaceCurrentItem(with: playerItem)
+        audioPlayer.actionAtItemEnd = .pause
+        
+        let durationInSeconds = CMTimeGetSeconds(asset.duration)
+        circularSlider.maximumValue = CGFloat(durationInSeconds)
+        let interval = CMTimeMake(value: 1, timescale: 4)
+        audioPlayer.addPeriodicTimeObserver(forInterval: interval, queue: DispatchQueue.main) {
+            [weak self] time in
+            let seconds = CMTimeGetSeconds(time)
+            self?.updatePlayerUI(withCurrentTime: CGFloat(seconds))
+        }
+
+        self.audioPlayer.play()
+    }
+    
+    
+    // update the slider position and the timer text
+    func updatePlayerUI(withCurrentTime currentTime: CGFloat) {
+        circularSlider.endPointValue = currentTime
+        var components = DateComponents()
+        components.second = Int(currentTime)
+        timerLabel.text = dateComponentsFormatter.string(from: components)
+    }
+    
+    @objc func updateTimer() {
+        var components = DateComponents()
+        components.second = Int(circularSlider.endPointValue)
+        timerLabel.text = dateComponentsFormatter.string(from: components)
+    }
+    
+    // MARK: - Notification 
+    
+    @objc func playerItemDidReachEnd(_ notification: Notification) {
+        if let playerItem: AVPlayerItem = notification.object as? AVPlayerItem {
+            playerItem.seek(to: CMTime.zero, toleranceBefore: CMTime.zero, toleranceAfter: CMTime.zero,completionHandler:nil)
+            playerSegmentedControl.selectedSegmentIndex = UISegmentedControl.noSegment
+        }
